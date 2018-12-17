@@ -2,7 +2,7 @@ Soccer.ipynb
 .ipynb_checkpoints/
 Tennis.ipynb
 unity-environment.log
-Tennis.app/
+Tennis.app/Contents
 __pycache__
 baselines
 buffer.py
