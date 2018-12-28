@@ -2,6 +2,9 @@
 
 [image1]: https://user-images.githubusercontent.com/10624937/42135623-e770e354-7d12-11e8-998d-29fc74429ca2.gif "Trained Agent"
 [image2]: https://user-images.githubusercontent.com/10624937/42135622-e55fb586-7d12-11e8-8a54-3c31da15a90a.gif "Soccer"
+[image3]: https://github.com/abhismatrix1/Tennis-MultiAgent/blob/master/training_graph.png "training graph"
+[image4]: https://github.com/abhismatrix1/Tennis-MultiAgent/blob/master/training_graph2.png "training graph2"
+[image5]: https://github.com/abhismatrix1/Tennis-MultiAgent/blob/master/training_graph_maddpg.png "training graph3"
 
 
 # Tennis: Collaboration and Competition
@@ -22,6 +25,20 @@ The task is episodic, and in order to solve the environment, your agents must ge
 - This yields a single **score** for each episode.
 
 The environment is considered solved, when the average (over 100 episodes) of those **scores** is at least +0.5.
+
+### Traiining result
+
+1. With DDPG agent (single -agent RL)
+The environment was solved in 3036 episodes. Average running scores graph is below
+![Training Graph][image3]
+
+-Extended training
+If the training is continued after solving the environment (i.e avg score > .5) we see that agent is continously improving reaching to avg score >3 in another 765 episodes. In this training i have reduced the noise. 
+![Training Graph2][image4]
+
+2. With maddpg agent (multi-agent reinforcement training.)
+The environment was solved in 1500 episodes.
+![Training Graph3][image5]
 
 ### Getting Started
 
