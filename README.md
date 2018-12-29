@@ -30,15 +30,15 @@ The environment is considered solved, when the average (over 100 episodes) of th
 
 1. With DDPG agent (single -agent RL)
 The environment was solved in 3036 episodes. Average running scores graph is below
-![Training Graph][image3]
+<a href="url"><img src="/training_graph.png " align="center" height="374" width="558" ></a>
 
--Extended training
+2. Extended training
 If the training is continued after solving the environment (i.e avg score > .5) we see that agent is continously improving reaching to avg score >3 in another 765 episodes. In this training i have reduced the noise. 
-![Training Graph2][image4]
+<a href="url"><img src="/training_graph2.png" align="center" height="374" width="558" ></a>
 
-2. With maddpg agent (multi-agent reinforcement training.)
-The environment was solved in 1500 episodes.
-![Training Graph3][image5]
+3. With maddpg agent (multi-agent reinforcement training.)
+The environment was solved in 900 episodes.
+<a href="url"><img src="/training_graph_maddpg.png" align="center" height="374" width="558" ></a>
 
 ### Getting Started
 
