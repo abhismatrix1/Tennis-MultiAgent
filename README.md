@@ -8,6 +8,7 @@
 
 
 # Tennis: Collaboration and Competition
+links: [Medium article on improved stability](https://medium.com/p/27719f3cafd4)
 
 ### Introduction
 
