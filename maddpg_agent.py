@@ -14,10 +14,10 @@ from schedule import LinearSchedule
 BUFFER_SIZE = int(1e6)  # replay buffer size
 BATCH_SIZE = 512         # minibatch size
 GAMMA = 0.99            # discount factor
-TAU = 1e-3              # for soft update of target parameters
+#TAU = 1e-3              # for soft update of target parameters
 ACTOR_LR = 1e-3         # Actor network learning rate 
 CRITIC_LR = 1e-4        # Actor network learning rate
-UPDATE_EVERY = 10       # how often to update the network (time step)
+UPDATE_EVERY = 20       # how often to update the network (time step)
 #UPDATE_TIMES = 5       # how many times to update in one go
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -26,7 +26,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, num_agents,seed,fc1=400,fc2=300,update_times=10):
+    def __init__(self, state_size, action_size, num_agents,seed,fc1=400,fc2=300,update_times=10,weight_decay=1.e-5):
         """Initialize an Agent object.
         
         Params
@@ -38,9 +38,11 @@ class Agent():
         self.state_size = state_size
         self.action_size = action_size
         self.seed = random.seed(seed)
+        self.n_seed=np.random.seed(seed)
         self.num_agents=num_agents
         self.update_times=update_times
         self.n_step=0
+        self.TAU=1e-3
         
         self.noise=[]
         for i in range(num_agents):
@@ -58,7 +60,7 @@ class Agent():
         self.actor_target.load_state_dict(self.actor_local.state_dict())
         
         # optimizer for critic and actor network
-        self.optimizer_critic = optim.Adam(self.critic_local.parameters(), lr=CRITIC_LR)
+        self.optimizer_critic = optim.Adam(self.critic_local.parameters(), lr=CRITIC_LR,weight_decay=1.e-5)
         self.optimizer_actor = optim.Adam(self.actor_local.parameters(), lr=ACTOR_LR)
 
         # Replay memory
@@ -100,20 +102,25 @@ class Agent():
         
         state = torch.from_numpy(state).float().detach().to(device)
         #print(state.shape,"act")
+        
         self.n_step+=1
 
-        dec=max((500-self.n_step)/500,.05)
+        epsilon=max((1500-self.n_step)/1500,.01)
+
 
         self.actor_local.eval()
         with torch.no_grad():
             actions=self.actor_local(state)
         self.actor_local.train()
         
-        #noise=[]
-        #for i in range(self.num_agents):
-        #    noise.append(self.noise[i].sample())
+
         if training:
-            return np.clip(actions.cpu().data.numpy()+np.random.uniform(-1,1,(2,2))*dec,-1,1)
+            #return np.clip(actions.cpu().data.numpy()+np.random.uniform(-1,1,(2,2))*epsilon,-1,1) #adding noise to action space
+            r=np.random.random()
+            if r<=epsilon:
+                return np.random.uniform(-1,1,(2,2))
+            else:
+                return np.clip(actions.cpu().data.numpy(),-1,1)#epsilon greedy policy
         else:
             return actions.cpu().data.numpy()
 
@@ -132,13 +139,13 @@ class Agent():
 
         all_next_actions=self.actor_target(all_next_state.view(batch_size*2,-1)).view(batch_size,-1)
 
-        critic_target_input=torch.cat((all_next_state,all_next_actions),dim=1).to(device)
+        critic_target_input=torch.cat((all_next_state,all_next_actions.view(batch_size*2,-1)[1::2]),dim=1).to(device)
         with torch.no_grad():
-            Q_target_next = self.critic_target(critic_target_input)
+            Q_target_next = self.critic_target(critic_target_input,all_next_actions.view(batch_size*2,-1)[::2])
         Q_targets= rewards +(gamma * Q_target_next * (1-dones))
         
-        critic_local_input=torch.cat((all_state,all_actions),dim=1).to(device)
-        Q_expected = self.critic_local(critic_local_input)
+        critic_local_input=torch.cat((all_state,all_actions.view(batch_size*2,-1)[1::2]),dim=1).to(device)
+        Q_expected = self.critic_local(critic_local_input,action)
         
         #critic loss
         huber_loss=torch.nn.SmoothL1Loss()
@@ -157,8 +164,9 @@ class Agent():
         action_pr_self = self.actor_local(states)
         action_pr_other=self.actor_local(all_next_state.view(batch_size*2,-1)[1::2]).detach()
 
-        critic_local_input2=torch.cat((all_state,torch.cat((action_pr_self,action_pr_other),dim=1)),dim=1)
-        p_loss=-self.critic_local(critic_local_input2).mean()
+        #critic_local_input2=torch.cat((all_state,torch.cat((action_pr_self,action_pr_other),dim=1)),dim=1)
+        critic_local_input2=torch.cat((all_state,action_pr_other),dim=1)
+        p_loss=-self.critic_local(critic_local_input2,action_pr_self).mean()
 
         
         
@@ -168,9 +176,9 @@ class Agent():
         self.optimizer_actor.step()
 
         # ------------------- update target network ------------------- #
-
-        self.soft_update(self.critic_local, self.critic_target, TAU)
-        self.soft_update(self.actor_local, self.actor_target, TAU)
+        self.TAU=min(5e-1,self.TAU*1.001)
+        self.soft_update(self.critic_local, self.critic_target, self.TAU)
+        self.soft_update(self.actor_local, self.actor_target, self.TAU)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
@@ -182,6 +190,7 @@ class Agent():
             target_model (PyTorch model): weights will be copied to
             tau (float): interpolation parameter 
         """
+
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
             

@@ -15,9 +15,9 @@ class Critic(nn.Module):
         """
         super(Critic, self).__init__()
         self.seed = torch.manual_seed(seed)
-        input_dim=state_size*2+action_size*2
+        input_dim=state_size*2+action_size
         self.fc1=nn.Linear(input_dim,fc1)
-        self.fc2=nn.Linear(fc1,fc2)
+        self.fc2=nn.Linear(fc1+action_size,fc2)
         
         self.bn=nn.BatchNorm1d(input_dim)
         self.bn2=nn.BatchNorm1d(fc1)
@@ -31,11 +31,12 @@ class Critic(nn.Module):
         #torch.nn.init.uniform_(self.fc5.weight, a=-3e-4, b=3e-4)
         #torch.nn.init.uniform_(self.fc5.bias, a=-3e-4, b=3e-4)
         
-    def forward(self, input_):
+    def forward(self, input_,action):
         """Build a network that maps state & action to action values."""
         
         x=self.bn(input_)
         x=F.relu(self.bn2(self.fc1(x)))
+        x=torch.cat([x,action],dim=1)
         x=F.relu(self.fc2(x))
         
         x=self.fc5(x)

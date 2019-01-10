@@ -26,7 +26,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, num_agents,seed,fc1=400,fc2=300,update_times=10):
+    def __init__(self, state_size, action_size, num_agents,seed,fc1=400,fc2=300,update_times=10,weight_decay=1.e-5):
         """Initialize an Agent object.
         
         Params
@@ -39,7 +39,9 @@ class Agent():
         self.action_size = action_size
         self.seed = random.seed(seed)
         self.num_agents=num_agents
+        self.n_seed=np.random.seed(seed)
         self.update_times=update_times
+        self.n_step=0
         
         self.noise=[]
         for i in range(num_agents):
@@ -57,7 +59,7 @@ class Agent():
         self.actor_target.load_state_dict(self.actor_local.state_dict())
         
         # optimizer for critic and actor network
-        self.optimizer_critic = optim.Adam(self.critic_local.parameters(), lr=CRITIC_LR)
+        self.optimizer_critic = optim.Adam(self.critic_local.parameters(), lr=CRITIC_LR,weight_decay=1.e-5)
         self.optimizer_actor = optim.Adam(self.actor_local.parameters(), lr=ACTOR_LR)
 
         # Replay memory
@@ -71,7 +73,7 @@ class Agent():
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
         for i in range(self.num_agents):
-            self.memory.add(state[i], action[i], reward[i], next_state[i], done[i])
+            all_state=self.memory.add(state[i], action[i], reward[i], next_state[i], done[i])
         
         # Learn every UPDATE_EVERY time steps.
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
@@ -100,11 +102,14 @@ class Agent():
             actions=self.actor_local(state)
         self.actor_local.train()
         
+        self.n_step+=1
+        dec=max((500-self.n_step)/500,.05)
         noise=[]
-        for i in range(self.num_agents):
-            noise.append(self.noise[i].sample())
+        #for i in range(self.num_agents):
+        #    noise.append(self.noise[i].sample())
         
-        return np.clip(actions.cpu().data.numpy()+np.array(noise),-1,1)
+        return np.clip(actions.cpu().data.numpy()+np.random.uniform(-1,1,(self.num_agents,self.action_size))*dec,-1,1)
+        #np.clip(actions.cpu().data.numpy()+np.array(noise),-1,1)
 
     def learn(self, experiences, gamma):
         
